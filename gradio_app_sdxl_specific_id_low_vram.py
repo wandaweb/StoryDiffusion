@@ -591,6 +591,12 @@ def process_generation(_sd_type,_model_type,_upload_images, _num_steps,style_nam
         id_images = pipe(id_prompts,input_id_images=input_id_images, num_inference_steps=_num_steps, guidance_scale=guidance_scale, start_merge_step = start_merge_step, height = height, width = width,negative_prompt = negative_prompt,generator = generator).images
     else: 
         raise NotImplementedError("You should choice between original and Photomaker!",f"But you choice {_model_type}")
+    panel_number = 0
+    outdir = f"output/out_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    os.makedirs(outdir)
+    for img in id_images:
+        panel_number += 1
+        img.save(f'{outdir}/img{panel_number}.png')
     total_results = id_images + total_results
     yield total_results
     real_images = []
@@ -606,7 +612,10 @@ def process_generation(_sd_type,_model_type,_upload_images, _num_steps,style_nam
         else:
             raise NotImplementedError("You should choice between original and Photomaker!",f"But you choice {_model_type}")
         total_results = [real_images[-1]] + total_results
+        panel_number += 1
+        real_images[-1].save(f'{outdir}/img{panel_number}.png')
         yield total_results
+    
     if _comic_type != "No typesetting (default)":
         captions= prompt_array.splitlines()
         captions = [caption.replace("[NC]","") for caption in captions]
@@ -616,9 +625,13 @@ def process_generation(_sd_type,_model_type,_upload_images, _num_steps,style_nam
         font_path = os.path.join("fonts", font_choice)
         print(f"Attempting to load font from path: {font_path}")
         font = ImageFont.truetype(font_path, int(45))
-    total_results = get_comic(id_images + real_images, _comic_type, captions=captions, font=font) + total_results
-    yield total_results
+    my_comic = get_comic(id_images + real_images, _comic_type, captions=captions, font=font)
+    for img in my_comic:
+        panel_number += 1
+        img.save(f'{outdir}/img{panel_number}.png')
+    total_results = my_comic + total_results
 
+    yield total_results
 
 
 def array2string(arr):
